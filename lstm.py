@@ -22,17 +22,41 @@ def lstm_model(num_units, rnn_layers, dense_layers=None, learning_rate=0.1, opti
 
     def lstm_cells(layers):
         if isinstance(layers[0], dict):
-            return [tf.contrib.rnn.DropoutWrapper(
-                tf.contrib.rnn.BasicLSTMCell(
-                    layer['num_units'], state_is_tuple=True
-                ),
-                layer['keep_prob']
-            ) if layer.get('keep_prob') else tf.contrib.rnn.BasicLSTMCell(
-                    layer['num_units'],
-                    state_is_tuple=True
-                ) for layer in layers
-            ]
-        return [tf.contrib.rnn.BasicLSTMCell(steps, state_is_tuple=True) for steps in layers]
+            ##tf.contrib.rnn.DropoutWrapper()
+            ##Changes in 1.4 are entirely additions.
+            ##original properties are:
+            ## -output_size: Output tensor size??
+            ## -state_size: Internal state?? Where? how? why is this accessable??
+            ## - __init__ Unchanged, except the addition of a dropout_state_filter_visitor var
+            ## --
+            ## - __call__ Completely identical
+            ## - zero_state
+
+            # For loop variant, for learning purpouses.
+            rolling_result = list()
+            for layer in layers:
+                if (layer.get('keep_prob')):
+                    rolling_result.append(tf.contrib.rnn.DropoutWrapper( 
+                                            tf.contrib.rnn.BasicLSTMCell(
+                                                layer['num_units'], 
+                                                state_is_tuple=True), 
+                                            layer['keep_prob']))
+                else:
+                    rolling_result.append(tf.contrib.rnn.BasicLSTMCell(
+                                            layer['num_units'], 
+                                            state_is_tuple=True))
+            return rolling_result
+
+            # Original list comprehension
+#            return [tf.contrib.rnn.DropoutWrapper( tf.contrib.rnn.BasicLSTMCell( layer['num_units'], state_is_tuple=True),
+#                layer['keep_prob']
+#            )
+#            if layer.get('keep_prob') else tf.contrib.rnn.BasicLSTMCell(
+#                    layer['num_units'],
+#                    state_is_tuple=True
+#                ) for layer in layers
+#            ]
+#        return [tf.contrib.rnn.BasicLSTMCell(steps, state_is_tuple=True) for steps in layers]
 
     def dnn_layers(input_layers, layers):
         if layers and isinstance(layers, dict):
